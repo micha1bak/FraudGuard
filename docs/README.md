@@ -2,17 +2,16 @@
 
 Version 1.0 · 2026-11-26
 
-A short set of rules for small projects (solo, teams of 2–5, AI agents). The ready-to-copy files are in the `project-template/` directory (this guide is included as `docs/README.md`). Copy its contents into a new project and fill in the `[...]` fields.
-
 ## 0. Project facts
 
 | Field | Value |
 | --- | --- |
-| Project | [name] |
-| Repository | [link] |
-| Tracker | [GitHub Issues / Jira – link] |
-| Stack | [language, framework, database, hosting] |
-| Environments | [dev / staging / prod – URLs] |
+| Project | FraudGuard – checks bank transfers for fraud risk before they are sent, warns manipulated customers and routes suspicious transfers to human review |
+| Requirements | [REQUIREMENTS.md](../REQUIREMENTS.md), [spec.md](spec.md) |
+| Repositories | backend: this repo [local only – no remote yet]; frontend (React): separate repo [link TBD] |
+| Tracker | [not set up yet – GitHub Issues / Jira] |
+| Stack | backend: Java 25, Spring Boot, Maven; database: PostgreSQL; frontend: React.js; AI: OpenAI API – see `decisions.md`, D-001 |
+| Environments | local: Docker Compose (development and demo); AWS: one EC2 instance with Docker Compose for the finished project (D-004) [region and URL TBD] |
 
 ## 1. Working rules
 
@@ -64,7 +63,7 @@ A task is done when:
 - [ ] the acceptance criteria are met and covered by tests,
 - [ ] the PR is merged and CI is green,
 - [ ] the documentation is up to date,
-- [ ] the change works in [staging / prod].
+- [ ] the change works locally (Docker Compose), and on AWS once the project is deployed there.
 
 ### 1.5 AI agents
 
