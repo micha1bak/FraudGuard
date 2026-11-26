@@ -4,15 +4,15 @@ Last updated: 2026-11-26
 
 > This file describes **how** the system is built. We use the **C4 model**: levels 1 and 2 are mandatory, level 3 only for complex containers, and we don't draw level 4 (code) – the code is the source of truth. Diagrams are written in Mermaid so they can be reviewed in PRs. Names on diagrams = names in the code and in the glossary (`spec.md`, section 7).
 >
-> **Status:** FraudGuard is a **standalone proof of concept** – it is not integrated with any bank system. The technology stack is chosen in `decisions.md`, D-001. Deployment on AWS will be described after its own decision.
+> **Status:** FraudGuard is a **standalone proof of concept** – it is not integrated with any bank system. The technology stack is chosen in `decisions.md`, D-001. The AWS deployment is decided in D-004.
 
 ## 1. Overview
 
 | Item | Value |
 | --- | --- |
 | Stack | backend: Java 25, Spring Boot, Maven; database: PostgreSQL; frontend: React.js; AI: OpenAI API (D-001) |
-| Hosting | development: local Docker Compose; finished project: AWS (services to be decided) |
-| Environments | local only for now; AWS environments to be defined |
+| Hosting | development: local Docker Compose; finished project: one AWS EC2 instance with Docker Compose (D-004) |
+| Environments | local; AWS EC2 [region, domain and URL TBD] |
 | Repositories | backend (this repo); frontend – separate repo [name / link TBD] |
 
 FraudGuard is a self-contained PoC: it simulates the banking side itself (customer accounts, balances, transfer history, transfer execution, users) using test data, and on top of it implements the full fraud flow from the requirements. Low-risk transfers are executed immediately; suspicious ones are held, the customer gets a warning and control questions, and doubtful cases go to a fraud analyst. The only external system is the OpenAI API, which helps write the warning – risk assessment and the final decision never depend on it.
@@ -262,9 +262,44 @@ Working assumption: the Compose file in this repo starts the database and the AP
 
 ### 6.2 AWS (finished project)
 
-[To be described after a separate decision: AWS services for the web app, API and PostgreSQL, region, infrastructure as code, CI/CD.]
+One EC2 instance runs Docker Compose with all three containers (D-004).
 
-Secrets and configuration (e.g. the OpenAI API key, database password): passed as environment variables, kept outside the repo (locally in an untracked `.env` file, on AWS in a secrets store); never committed.
+```mermaid
+%%{init: {"themeVariables": {"edgeLabelBackground": "#ffffff"}}}%%
+flowchart LR
+  user["<b>Customer / Fraud analyst</b><br/>[Browser]"]
+  ai["<b>OpenAI API</b><br/>[External system]"]
+
+  subgraph ec2 ["AWS EC2 – Docker Compose"]
+    web["<b>Web app</b><br/>[Container: web server]<br/>Serves the SPA at /,<br/>proxies /api/* to the API,<br/>terminates HTTPS"]
+    api["<b>API</b><br/>[Container: Spring Boot]"]
+    db[("<b>Database</b><br/>[Container: PostgreSQL]<br/>data on an EBS volume")]
+  end
+
+  user -- "HTTPS 443" --> web
+  web -- "HTTP, internal network" --> api
+  api -- "JDBC, internal network" --> db
+  api -- "HTTPS" --> ai
+
+  classDef person fill:#08427b,stroke:#052e56,color:#ffffff
+  classDef container fill:#438dd5,stroke:#2e6295,color:#ffffff
+  classDef external fill:#6b6b6b,stroke:#4d4d4d,color:#ffffff
+  class user person
+  class web,api,db container
+  class ai external
+  style ec2 fill:none,stroke:#8b949e,stroke-dasharray:5 5
+  linkStyle default stroke:#8b949e,stroke-width:2px,color:#1f2328
+```
+
+| Container | Where it runs | How we deploy |
+| --- | --- | --- |
+| Web app | Docker container on EC2; the only one exposed to the internet (443) | image built from the frontend repo [build and delivery TBD] |
+| API | Docker container on EC2, internal network only | image built from this repo [build and delivery TBD] |
+| Database | Docker container on EC2, internal network only; data on an EBS volume | started by Compose; Flyway migrations run at API start |
+
+To define before the first deployment (see D-004): region (EU recommended), domain and TLS certificate, backups (EBS snapshots or `pg_dump` to S3), access via SSM Session Manager, how images reach the instance (build on the instance or a registry such as ECR), infrastructure as code and CI/CD.
+
+Secrets and configuration (e.g. the OpenAI API key, database password): passed as environment variables, kept outside the repo (locally in an untracked `.env` file, on EC2 in SSM Parameter Store or an `.env` file readable only on the instance); never committed.
 
 ## 7. Cross-cutting concepts
 

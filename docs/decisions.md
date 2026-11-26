@@ -15,6 +15,29 @@
 - Supersedes: [D-00Y] (if applicable)
 -->
 
+## D-004: AWS deployment on a single EC2 instance – 2026-11-26
+- Context: D-001 set AWS as the target for the finished project but left the services open. FraudGuard is a PoC with three containers (web app, API, PostgreSQL), low traffic and no production data. The deployment should stay as close as possible to the local Docker Compose setup and be cheap and simple to run.
+- Decision:
+  - **One EC2 instance** running **Docker Compose** with three containers: the database (PostgreSQL), the API (Spring Boot) and the web app (built React SPA served by a web server).
+  - The web app container also acts as the entry point. It serves the SPA at `/` and proxies `/api/*` to the API container, so the browser sees one origin (consistent with D-003). Only this container is reachable from the internet; the API and the database are on the internal Docker network.
+  - PostgreSQL data is kept on a Docker volume on the instance's EBS disk.
+- Rejected:
+  - Managed services (ECS / Fargate for containers, RDS for PostgreSQL, S3 + CloudFront for the SPA) – more resilient and with managed backups, but more infrastructure to set up and pay for than a PoC needs.
+  - Kubernetes (EKS) – far too heavy for three containers.
+- Consequences:
+  - The same images and nearly the same Compose setup run locally and on AWS. Sessions can stay in API memory, because there is a single API instance (D-003).
+  - The instance is a single point of failure: no high availability, and downtime during deployments and restarts. That is acceptable for a PoC.
+  - Backups are our responsibility, not AWS's: regular EBS snapshots or `pg_dump` to S3 [to define].
+  - Still to define before the first deployment:
+    - AWS region – an EU region is recommended for a Polish bank;
+    - HTTPS – a TLS certificate on the web app container (e.g. Let's Encrypt) and a domain;
+    - secrets – the OpenAI API key and the database password, kept in SSM Parameter Store or an `.env` file readable only on the instance, never in the repo;
+    - access – SSM Session Manager instead of open SSH;
+    - how images reach the instance – build on the instance, or push to a registry (e.g. ECR);
+    - infrastructure as code and CI/CD.
+  - The production Compose file needs all three containers, so it must reference the web app image built from the frontend repo.
+- Related: D-001, D-003
+
 ## D-003: Authentication between the web app and the API – 2026-11-26
 - Context: the React SPA (separate repo) calls the Spring Boot API. Users are built-in test users with two roles, customer and fraud analyst (NFR-05). Every decision in the audit log must record who made it (NFR-01). The PoC runs locally and later on AWS. Credentials must stay out of reach of JavaScript in a banking context.
 - Decision:

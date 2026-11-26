@@ -11,7 +11,7 @@ Version 1.0 · 2026-11-26
 | Repositories | backend: this repo [local only – no remote yet]; frontend (React): separate repo [link TBD] |
 | Tracker | [not set up yet – GitHub Issues / Jira] |
 | Stack | backend: Java 25, Spring Boot, Maven; database: PostgreSQL; frontend: React.js; AI: OpenAI API – see `decisions.md`, D-001 |
-| Environments | local: Docker Compose (development and demo); AWS for the finished project [environments and URLs TBD] |
+| Environments | local: Docker Compose (development and demo); AWS: one EC2 instance with Docker Compose for the finished project (D-004) [region and URL TBD] |
 
 ## 1. Working rules
 

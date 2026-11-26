@@ -40,9 +40,9 @@ Full requirements: [REQUIREMENTS.md](REQUIREMENTS.md).
 | Frontend (separate repo) | React.js |
 | AI | OpenAI API (optional at runtime – a template warning is used when it is unavailable) |
 | Local run | Docker Compose |
-| Target deployment | AWS (services to be decided) |
+| Target deployment | AWS: one EC2 instance with Docker Compose (D-004) |
 
-Reasons and rejected options: [D-001](docs/decisions.md). How the parts fit together: [Architecture](docs/architecture.md).
+Reasons and rejected options: [D-001, D-004](docs/decisions.md). How the parts fit together: [Architecture](docs/architecture.md).
 
 ## Requirements
 
