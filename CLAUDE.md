@@ -27,14 +27,14 @@ Planned – the Maven project and `docker-compose.yml` don't exist yet. Confirm 
 - Run API: `./mvnw spring-boot:run`
 - Unit tests: `./mvnw test`
 - All tests (incl. integration on PostgreSQL via Testcontainers): `./mvnw verify`
-- Lint / format: `[TBD – tool not chosen]`
+- Format code: `./mvnw spotless:apply` (check: `./mvnw spotless:check`, also part of `verify`)
 
 ## Code structure
 
 Planned standard Maven layout (see `docs/architecture.md`, sections 3–4):
 
 - `src/main/java/.../fraudguard/<module>` – one package per module: `banking`, `risk`, `warning`, `review`, `audit`, `identity`
-- `src/main/resources/db/migration` – database migrations
+- `src/main/resources/db/migration` – Flyway migrations in plain SQL (`V<n>__<description>.sql`)
 - `src/test/java` – tests, mirroring the module packages
 - Architecture and domain terms: `docs/architecture.md`, `docs/spec.md` (glossary)
 
@@ -48,7 +48,7 @@ Planned standard Maven layout (see `docs/architecture.md`, sections 3–4):
 - REST errors use Spring `ProblemDetail`.
 - The OpenAI client is used only inside the `warning` module, behind our own interface. Tests use a fake, never the real OpenAI API.
 - Tests that touch the database run on real PostgreSQL (Testcontainers), not an in-memory database.
-- [formatting and static analysis – TBD with the lint tool]
+- Formatting: palantir-java-format via Spotless (D-002). Run `./mvnw spotless:apply` before committing; don't format by hand against it.
 
 ## Don't
 

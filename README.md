@@ -58,7 +58,7 @@ Reasons and rejected options: [D-001](docs/decisions.md). How the parts fit toge
 ```bash
 cp .env.example .env              # fill in the OpenAI API key and database password
 docker compose up -d db           # start PostgreSQL
-./mvnw spring-boot:run            # start the API (database migrations run on start)
+./mvnw spring-boot:run            # start the API (Flyway database migrations run on start)
 ```
 
 Or run everything in containers:
@@ -76,7 +76,8 @@ The frontend is started from its own repository and configured with the API URL.
 ```bash
 ./mvnw test       # unit tests
 ./mvnw verify     # all tests, including integration tests on a real PostgreSQL (Testcontainers)
-[lint command]    # linter and formatter – tool not chosen yet
+./mvnw spotless:apply   # format the code (palantir-java-format)
+./mvnw spotless:check   # check formatting – also part of ./mvnw verify
 ```
 
 ## Configuration

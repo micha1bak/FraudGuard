@@ -15,6 +15,22 @@
 - Supersedes: [D-00Y] (if applicable)
 -->
 
+## D-002: Database migrations and code formatting – 2026-11-26
+- Context: D-001 chose Java 25, Spring Boot, Maven and PostgreSQL, but left the migration tool and the linter / formatter open. The schema must support an append-only audit log protected at database level (NFR-01). Committed migrations must never change. Code style should be identical whether code is written in IntelliJ or by an AI agent, and checked in CI.
+- Decision:
+  - Migrations: **Flyway**. Migrations are plain SQL files in `src/main/resources/db/migration` (`V1__…sql`), run automatically when the API starts. Plain SQL lets us write `GRANT` / `REVOKE UPDATE, DELETE` and triggers for the audit table directly. Flyway's checksums stop the app if a committed migration has been changed.
+  - Formatting: **Spotless** Maven plugin with **palantir-java-format** (4-space indent, 120-character lines, close to IntelliJ's default style). `./mvnw spotless:apply` formats the code, and `./mvnw spotless:check` runs in the build and fails it on unformatted code.
+- Rejected:
+  - Liquibase – more flexible (XML/YAML changelogs, rollbacks), but more configuration than the PoC needs, and plain SQL is clearer for the audit-log permissions.
+  - google-java-format – same approach, but 2-space indent and 100-character lines fit Java/Spring code in IntelliJ less well.
+  - Checkstyle – duplicates the formatter and needs its own rule set to maintain.
+  - PMD, SpotBugs – too heavy for the start of the PoC.
+- Consequences:
+  - `./mvnw verify` fails on unformatted code, and CI enforces one style. Developers run `spotless:apply` or use the palantir-java-format IntelliJ plugin.
+  - Migrations are append-only by convention and by Flyway checksums. A schema change is always a new `V…` file.
+  - Static analysis (e.g. Error Prone) is not included yet. It can be added later as a separate decision, once its Java 25 support is confirmed.
+- Related: D-001
+
 ## D-001: Technology stack for the PoC – 2026-11-26
 - Context: FraudGuard is a standalone PoC: a web application for two roles (customer, fraud analyst) with a rules-based risk engine, an append-only audit log, a background job for the review time limit, built-in test users and one external integration (an AI service, with anonymisation and a fallback). It runs as a demo, not in production, but it should look credible to a bank.
 - Decision:
