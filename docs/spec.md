@@ -10,6 +10,8 @@ Version 0.1 · 2026-11-26 · Owner: Michał Bąk
 
 The bank loses money to fraud in which customers send transfers themselves while being manipulated, for example by a phone call from someone pretending to be a bank employee. FraudGuard checks every transfer for fraud risk before it is sent, warns the customer and asks short control questions when a transfer looks suspicious, and passes doubtful cases to a bank employee for review – without slowing down ordinary transfers.
 
+**This version is a standalone proof of concept (PoC).** It is not integrated with any bank system. FraudGuard simulates accounts, transfers, transfer history and users with test data, and its only external dependency is an AI service. The PoC demonstrates the flow and the rules. The success measures below apply to a future production version and cannot be measured on test data.
+
 Success measures (thresholds to be agreed with the bank):
 
 - lower losses from transfer fraud – [target, e.g. −X% year over year]
@@ -22,9 +24,9 @@ Success measures (thresholds to be agreed with the bank):
 | Role | Who they are | What they need |
 | --- | --- | --- |
 | Customer | bank customer sending a transfer | send ordinary transfers without friction; be warned clearly when they may be being scammed; stay in control of a held transfer |
-| Fraud analyst | bank employee on the fraud team | a prioritised queue of held transfers with all context needed to decide quickly and justify the decision |
-| Risk administrator | bank employee responsible for fraud rules | define risk scenarios and the holding threshold without involving the vendor |
-| Auditor / supervisor | internal audit, external auditors, KNF | a complete, permanent record of every decision and its basis |
+| Fraud analyst | bank employee on the fraud team | a prioritised queue of held transfers with all context needed to decide quickly and justify the decision; define risk scenarios and the holding threshold without involving the vendor |
+
+Auditors and the financial supervisor (KNF) are not users of the system. They receive explanations of decisions from the bank, and the audit log makes those explanations possible (NFR-01, NFR-02).
 
 ## 3. Scope
 
@@ -41,7 +43,7 @@ Features at a level a non-technical person understands. Details and acceptance c
 | F-07 | Review details: why the system stopped the transfer, the customer's answers, and how the customer normally uses the account | Fraud analyst | Must | R-10 |
 | F-08 | Approve / reject decision made by a person, always with a short justification | Fraud analyst | Must | R-11 |
 | F-09 | Review time limit: a transfer not reviewed in time is not executed | Fraud analyst, Customer | Must | R-12 |
-| F-10 | Configuration of risk scenarios and of the risk threshold above which a transfer is held, by the bank itself | Risk administrator | Must | R-13 |
+| F-10 | Configuration of risk scenarios and of the risk threshold above which a transfer is held, by the bank itself | Fraud analyst | Must | R-13 |
 
 Priorities: **Must** (we don't launch without it), **Should** (important, but can wait), **Could** (if time allows). All requirements in `REQUIREMENTS.md` are currently treated as Must; priorities to be confirmed with the bank.
 
@@ -49,6 +51,8 @@ Priorities: **Must** (we don't launch without it), **Should** (important, but ca
 
 What we deliberately do **not** do (at least in this version):
 
+- integration with bank systems (online banking, transfer system, account history, identity and access, notifications) – the PoC simulates them internally
+- real customer data – the PoC uses test data only
 - automatic approval or rejection of a held transfer by the system – the final decision is always made by a person (R-11)
 - sending any customer-identifying data to external AI services (R-15)
 - [to confirm with the bank] fraud without the customer's involvement, e.g. account takeover or stolen credentials
@@ -71,8 +75,8 @@ Every requirement must be measurable. "The system should be fast" is not a requi
 ## 6. Constraints and assumptions
 
 - Constraints: Polish banking regulation and KNF supervision; GDPR; decisions must remain explainable; the bank configures risk rules without the vendor; [technology stack – to be decided, see `docs/decisions.md`]
-- Assumptions: the bank's transfer system can hold a transfer before execution and release or cancel it later; account history is available to build the customer's usual behaviour profile; [to confirm]
-- External dependencies: external AI service used to prepare warnings (optional at runtime, see NFR-04); the bank's core banking / transfer system; [customer notification channel – TBD]
+- Assumptions: the PoC is standalone. Accounts, balances, transfer execution, transfer history (for the customer profile), users and roles, and customer messages are simulated inside FraudGuard with test data. The regulatory rules (audit log, anonymisation before AI, AI fallback, access control) are implemented as they would be in production.
+- External dependencies: only the external AI service used to prepare warnings (optional at runtime, see NFR-04). [Which AI service – TBD]
 
 ## 7. Glossary
 
@@ -98,5 +102,4 @@ We use the same names in code, on diagrams and in user stories.
 | Audit log | the permanent, unchangeable record of all decisions: who, when, on what basis |
 | Customer profile | how the customer normally uses their account (typical amounts, recipients, times), shown during review |
 | Identifying data | any data that could identify the customer; never sent to external AI services |
-| Fraud analyst | a bank employee who reviews held transfers |
-| Risk administrator | a bank employee who manages risk scenarios and the risk threshold |
+| Fraud analyst | a bank employee who reviews held transfers and manages risk scenarios and the risk threshold |
