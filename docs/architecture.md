@@ -256,9 +256,9 @@ stateDiagram-v2
 | --- | --- | --- |
 | Database | Docker container (PostgreSQL) | `docker compose up` in this repo |
 | API | Docker container, or from IntelliJ / `mvn spring-boot:run` during development | `docker compose up` in this repo; migrations run at API start |
-| Web app | dev server from the frontend repo, pointing at the API URL | started in the frontend repo [command TBD] |
+| Web app | dev server from the frontend repo, proxying `/api/*` to the API | started in the frontend repo [command TBD] |
 
-Working assumption: the Compose file in this repo starts the database and the API; the frontend repo starts itself and is configured with the API URL. This keeps the two repos independent.
+Working assumption: the Compose file in this repo starts the database and the API, and the frontend repo starts itself. This keeps the two repos independent. The frontend dev server proxies `/api/*` to the API, so the browser sees one origin and no CORS is needed (D-003). On AWS, one domain serves the SPA at `/` and the API at `/api/*`.
 
 ### 6.2 AWS (finished project)
 
@@ -270,7 +270,7 @@ Secrets and configuration (e.g. the OpenAI API key, database password): passed a
 
 Briefly, only what affects many places in the code:
 
-- **Authentication and authorization:** built-in test users. Roles: customer (only own accounts and transfers), fraud analyst (only data needed for a review, risk configuration, read-only audit log) (NFR-05). Enforced in the API with Spring Security; the web app only hides what the user can't do. How the SPA authenticates against the API across origins (session cookie or token, CORS) is a separate decision [TBD].
+- **Authentication and authorization:** built-in test users. Roles: customer (only own accounts and transfers), fraud analyst (only data needed for a review, risk configuration, read-only audit log) (NFR-05). Enforced in the API with Spring Security; the web app only hides what the user can't do. Login creates a server-side session with an `HttpOnly` cookie. State-changing requests carry a CSRF token (`XSRF-TOKEN` cookie, `X-XSRF-TOKEN` header). SPA and API share one origin, so there is no CORS (D-003). The session user is the "who" in the audit log.
 - **API contract:** REST/JSON, described with OpenAPI, so the frontend repo can rely on it; changes to the contract are recorded as decisions.
 - **Audit log:** every decision by the system or an employee is appended with who, when and on what basis (risk score, triggered risk scenarios, customer answers, justification). Entries are never updated or deleted (NFR-01, NFR-02). In PostgreSQL the application's database user has no `UPDATE` / `DELETE` rights on the audit table.
 - **External AI (OpenAI):** called only with anonymised data and always with a fallback to the simplified warning; a timeout keeps it off the critical path (NFR-03, NFR-04). The OpenAI client sits behind our own interface in the `warning` module, so the provider can be swapped and tests can run without OpenAI.

@@ -69,7 +69,7 @@ docker compose up
 
 The API runs at: http://localhost:8080 (Spring Boot default; to be confirmed)
 
-The frontend is started from its own repository and configured with the API URL.
+The frontend is started from its own repository. Its dev server proxies `/api/*` to the API, so both share one origin (D-003).
 
 ## Tests and quality
 
@@ -94,7 +94,6 @@ Configuration is passed as environment variables (locally in an untracked `.env`
 | `OPENAI_API_KEY` | OpenAI API key; when empty or OpenAI fails, template warnings are used | – (secret) |
 | `OPENAI_TIMEOUT` | maximum wait for OpenAI before falling back to the template warning | `5s` |
 | `FRAUDGUARD_REVIEW_TIME_LIMIT` | time after which a held transfer that has not been reviewed is not executed | `PT30M` |
-| `FRAUDGUARD_CORS_ALLOWED_ORIGINS` | frontend URL allowed to call the API | `http://localhost:5173` |
 
 ## Documentation
 

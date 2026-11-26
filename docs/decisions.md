@@ -15,6 +15,24 @@
 - Supersedes: [D-00Y] (if applicable)
 -->
 
+## D-003: Authentication between the web app and the API – 2026-11-26
+- Context: the React SPA (separate repo) calls the Spring Boot API. Users are built-in test users with two roles, customer and fraud analyst (NFR-05). Every decision in the audit log must record who made it (NFR-01). The PoC runs locally and later on AWS. Credentials must stay out of reach of JavaScript in a banking context.
+- Decision:
+  - **Server-side session with an HttpOnly cookie**, managed by Spring Security. The SPA logs in with `POST /api/auth/login` (username and password; passwords stored as BCrypt hashes, test users from seed data) and logs out with `POST /api/auth/logout`, which invalidates the session.
+  - Session cookie flags: `HttpOnly`, `SameSite=Lax`, and `Secure` outside local development.
+  - **CSRF protection** on state-changing requests: Spring Security issues the token in an `XSRF-TOKEN` cookie, and the SPA sends it back in the `X-XSRF-TOKEN` header.
+  - **SPA and API on the same origin**, so no CORS is needed. Locally the frontend dev server proxies `/api/*` to the API. On AWS one domain serves the SPA at `/` and the API at `/api/*`.
+  - Authorization by role in the API (Spring Security). The SPA only hides what the user can't do.
+- Rejected:
+  - JWT in the `Authorization` header – a token readable by JavaScript is exposed to XSS, logout and revocation are hard, and refresh tokens add code.
+  - OAuth2 / OIDC with an external identity provider (Keycloak, Cognito) – production-grade, but an extra service to run and configure for two roles and test users. It can be added later with the API acting as a backend for frontend (BFF), so the SPA keeps using the session cookie.
+  - SPA and API on different origins with CORS and cross-site cookies – more configuration and weaker cookie protection, with no benefit for the PoC.
+- Consequences:
+  - The API has no CORS configuration. The frontend repo needs a dev-server proxy for `/api` (e.g. Vite's `server.proxy`) – the frontend build tool is not decided yet.
+  - Sessions live in API memory, which is enough for a single local instance. With more than one API instance on AWS, sessions move to PostgreSQL (Spring Session JDBC) – to be decided with the AWS deployment.
+  - The authenticated user from the session is the source of "who" in the audit log.
+- Related: D-001
+
 ## D-002: Database migrations and code formatting – 2026-11-26
 - Context: D-001 chose Java 25, Spring Boot, Maven and PostgreSQL, but left the migration tool and the linter / formatter open. The schema must support an append-only audit log protected at database level (NFR-01). Committed migrations must never change. Code style should be identical whether code is written in IntelliJ or by an AI agent, and checked in CI.
 - Decision:
