@@ -2,6 +2,10 @@
 
 A system that checks every bank transfer for fraud risk before it is sent, warns customers who may be being manipulated by a scammer (for example a fake "bank employee" on the phone), and routes suspicious transfers to the bank's fraud team for review by a person.
 
+**Status:** standalone proof of concept (PoC). It is not integrated with any bank system: accounts, transfers and users are simulated with test data, and the only external service is the OpenAI API.
+
+This repository holds the **backend** (Java 25, Spring Boot, PostgreSQL). The React frontend lives in a separate repository: [frontend repo – link TBD].
+
 ## What it does
 
 **For customers**
@@ -27,39 +31,69 @@ A system that checks every bank transfer for fraud risk before it is sent, warns
 
 Full requirements: [REQUIREMENTS.md](REQUIREMENTS.md).
 
+## Tech stack
+
+| Part | Technology |
+| --- | --- |
+| Backend (this repo) | Java 25, Spring Boot, Maven |
+| Database | PostgreSQL |
+| Frontend (separate repo) | React.js |
+| AI | OpenAI API (optional at runtime – a template warning is used when it is unavailable) |
+| Local run | Docker Compose |
+| Target deployment | AWS (services to be decided) |
+
+Reasons and rejected options: [D-001](docs/decisions.md). How the parts fit together: [Architecture](docs/architecture.md).
+
 ## Requirements
 
-- Java (IntelliJ IDEA module; JDK version not chosen yet)
-- [Build tool, database, other services – to be decided, see [Decisions](docs/decisions.md)]
+- JDK 25
+- Maven (or the Maven Wrapper `./mvnw`, once added to the repo)
+- Docker with Docker Compose
+- an OpenAI API key (optional – without it the app uses template warnings)
 
 ## Getting started
 
-> The technology stack has not been chosen yet. This section will be filled in once the build setup exists.
+> **Planned setup.** The Maven project, `docker-compose.yml` and `.env.example` don't exist in the repo yet. The commands below show the intended workflow and will be confirmed once the code is in place.
 
 ```bash
-[cp .env.example .env]
-[build command]
-[run command]
+cp .env.example .env              # fill in the OpenAI API key and database password
+docker compose up -d db           # start PostgreSQL
+./mvnw spring-boot:run            # start the API (database migrations run on start)
 ```
 
-The app runs at: [URL – TBD]
+Or run everything in containers:
+
+```bash
+docker compose up
+```
+
+The API runs at: http://localhost:8080 (Spring Boot default; to be confirmed)
+
+The frontend is started from its own repository and configured with the API URL.
 
 ## Tests and quality
 
 ```bash
-[test command]     # tests
-[lint command]     # linter and formatter
+./mvnw test       # unit tests
+./mvnw verify     # all tests, including integration tests on a real PostgreSQL (Testcontainers)
+[lint command]    # linter and formatter – tool not chosen yet
 ```
 
 ## Configuration
 
-> To be filled in as configuration is introduced. Expected areas, based on the requirements:
+Configuration is passed as environment variables (locally in an untracked `.env` file). Never commit secrets.
+
+> Variable names are planned and will be confirmed once the code is in place.
 
 | Variable | Description | Example |
 | --- | --- | --- |
-| [DATABASE_URL] | database connection (transfers, decisions, audit log) | [TBD] |
-| [AI_SERVICE_URL] | external AI service used for warnings; the system must work without it | [TBD] |
-| [REVIEW_TIMEOUT] | time after which an unreviewed held transfer is not executed | [TBD] |
+| `SPRING_DATASOURCE_URL` | PostgreSQL connection | `jdbc:postgresql://localhost:5432/fraudguard` |
+| `SPRING_DATASOURCE_USERNAME` | database user | `fraudguard` |
+| `SPRING_DATASOURCE_PASSWORD` | database password | – (secret) |
+| `OPENAI_API_KEY` | OpenAI API key; when empty or OpenAI fails, template warnings are used | – (secret) |
+| `OPENAI_TIMEOUT` | maximum wait for OpenAI before falling back to the template warning | `5s` |
+| `FRAUDGUARD_REVIEW_TIME_LIMIT` | time after which a held transfer that has not been reviewed is not executed | `PT30M` |
+| `FRAUDGUARD_CORS_ALLOWED_ORIGINS` | frontend URL allowed to call the API | `http://localhost:5173` |
 
 ## Documentation
 
